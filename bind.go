@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aatuh/envvar/internal"
+	"github.com/aatuh/envvar/v2/internal"
 )
 
 // Bind populates a struct from the process environment using `env` and
@@ -154,35 +154,35 @@ func parseEnvTag(tag string) (name string, required bool) {
 
 // setField sets the field.
 func setField(v reflect.Value, raw, sep string, jsonMode bool) error {
-    // If JSON mode is enabled, unmarshal into the field type.
-    if jsonMode {
-        return setFieldJSON(v, raw)
-    }
+	// If JSON mode is enabled, unmarshal into the field type.
+	if jsonMode {
+		return setFieldJSON(v, raw)
+	}
 
-    t := v.Type()
-    kind := t.Kind()
+	t := v.Type()
+	kind := t.Kind()
 
-    // Pointers
-    if kind == reflect.Ptr {
-        // Special-case *url.URL
-        if t.Elem().PkgPath() == "net/url" && t.Elem().Name() == "URL" {
-            u, err := url.Parse(raw)
-            if err != nil || u.Scheme == "" {
-                return fmt.Errorf("invalid url: %s", raw)
-            }
-            // Set the pointed value directly
-            elem := reflect.New(t.Elem())
-            elem.Elem().Set(reflect.ValueOf(*u))
-            v.Set(elem)
-            return nil
-        }
-        elem := reflect.New(t.Elem())
-        if err := setField(elem.Elem(), raw, sep, false); err != nil {
-            return err
-        }
-        v.Set(elem)
-        return nil
-    }
+	// Pointers
+	if kind == reflect.Ptr {
+		// Special-case *url.URL
+		if t.Elem().PkgPath() == "net/url" && t.Elem().Name() == "URL" {
+			u, err := url.Parse(raw)
+			if err != nil || u.Scheme == "" {
+				return fmt.Errorf("invalid url: %s", raw)
+			}
+			// Set the pointed value directly
+			elem := reflect.New(t.Elem())
+			elem.Elem().Set(reflect.ValueOf(*u))
+			v.Set(elem)
+			return nil
+		}
+		elem := reflect.New(t.Elem())
+		if err := setField(elem.Elem(), raw, sep, false); err != nil {
+			return err
+		}
+		v.Set(elem)
+		return nil
+	}
 
 	switch kind {
 	case reflect.String:
@@ -238,13 +238,13 @@ func setField(v reflect.Value, raw, sep string, jsonMode bool) error {
 		}
 		v.Set(sv)
 		return nil
-    case reflect.Struct:
-        // url.URL supported via pointer. Direct struct is awkward;
-        // keep a helpful error for clarity.
-        if t.PkgPath() == "net/url" && t.Name() == "URL" {
-            return fmt.Errorf("use *url.URL in struct, not url.URL")
-        }
-        return fmt.Errorf("unsupported struct type %s", t.String())
+	case reflect.Struct:
+		// url.URL supported via pointer. Direct struct is awkward;
+		// keep a helpful error for clarity.
+		if t.PkgPath() == "net/url" && t.Name() == "URL" {
+			return fmt.Errorf("use *url.URL in struct, not url.URL")
+		}
+		return fmt.Errorf("unsupported struct type %s", t.String())
 	default:
 		return fmt.Errorf("unsupported kind %s", kind)
 	}

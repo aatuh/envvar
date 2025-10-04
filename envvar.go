@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aatuh/envvar/types"
+	"github.com/aatuh/envvar/v2/types"
 )
 
 // Hook allows optional observability without adding dependencies.

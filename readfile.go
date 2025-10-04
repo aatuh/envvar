@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aatuh/envvar/internal"
-	"github.com/aatuh/envvar/types"
+	"github.com/aatuh/envvar/v2/internal"
+	"github.com/aatuh/envvar/v2/types"
 )
 
 // SetEnvVars sets the provided map into process env. Values overwrite

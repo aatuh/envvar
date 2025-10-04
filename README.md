@@ -13,7 +13,7 @@ Tiny-but-mighty environment reader and struct binder for Go.
 ## Install
 
 ```bash
-go get github.com/aatuh/envvar
+go get github.com/aatuh/envvar/v2
 ```
 
 ## Quick start
@@ -26,7 +26,7 @@ import (
   "net/url"
   "time"
 
-  "github.com/aatuh/envvar"
+  "github.com/aatuh/envvar/v2"
 )
 
 type Config struct {
