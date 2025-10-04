@@ -18,7 +18,7 @@ go get github.com/aatuh/envvar/v2
 
 ## Quick start
 
-Check the examples from the [examples package]
+Check the examples from the [examples package](./examples).
 
 Run examples with:
 
