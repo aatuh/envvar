@@ -162,6 +162,22 @@ func (myHook) OnGet(k string, ok bool, err error, d time.Duration) {}
 envvar.SetHook(myHook{})
 ```
 
+## Examples
+
+See the `/examples` directory for comprehensive, progressive examples:
+
+* `01_basic_getters_test.go` - Basic getter functions
+* `02_advanced_getters_test.go` - Advanced getters and lazy evaluation
+* `03_struct_binding_test.go` - Struct binding and validation
+* `04_file_loading_test.go` - Loading from files
+* `05_advanced_features_test.go` - Redaction, hooks, and complex validation
+* `06_integration_example_test.go` - Complete application configuration
+
+Run examples with:
+```bash
+go test ./examples/...
+```
+
 ## Design notes
 
 * URL fields should be `*url.URL` in structs; direct `url.URL` is
@@ -170,43 +186,4 @@ envvar.SetHook(myHook{})
   forms for user input.
 * The package uses stdlib-only dependencies while providing a clean API
   for environment variable management and struct binding.
-
-## Testing snippets
-
-Table-driven tests that are useful to add in your repo:
-
-```go
-func TestBind_DurationAndOneOf(t *testing.T) {
-  t.Setenv("TIMEOUT", "5s")
-  t.Setenv("MODE", "b")
-  type C struct {
-    Timeout time.Duration `env:"TIMEOUT" validate:"min=1s,max=10s"`
-    Mode    string        `env:"MODE" validate:"oneof=a|b|c"`
-  }
-  var c C
-  if err := envvar.Bind(&c); err != nil { t.Fatal(err) }
-}
-
-func TestLoadEnvVars(t *testing.T) {
-  // Set up a temporary .env file (requires "os" import)
-  content := "PORT=9090\nDEBUG=true"
-  os.WriteFile(".env.test", []byte(content), 0644)
-  defer os.Remove(".env.test")
-  
-  if err := envvar.LoadEnvVars([]string{".env.test"}); err != nil {
-    t.Fatal(err)
-  }
-  if got := envvar.MustGetInt("PORT"); got != 9090 {
-    t.Fatalf("got %d", got)
-  }
-}
-
-func TestExpandMap(t *testing.T) {
-  in := map[string]string{
-    "HOST": "db",
-    "URL":  "postgres://${HOST}:${PORT:-5432}/x",
-  }
-  out := envvar.MustExpandMap(in)
-  if out["URL"] == "" { t.Fatal("empty") }
-}
-```
+* For nested structs, use a flattened structure or bind them separately.

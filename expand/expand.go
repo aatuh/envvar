@@ -1,4 +1,4 @@
-package internal
+package expand
 
 import (
 	"os"
@@ -68,10 +68,10 @@ func MustExpandMap(in map[string]string) map[string]string {
 // Returns:
 //   - string: The expanded string.
 func Expand(s string) string {
-    // First handle ${NAME} and ${NAME:-def} ourselves to preserve defaults,
-    // then allow $NAME and ${NAME} leftovers via os.ExpandEnv.
-    s = expandWithLookup(s, os.LookupEnv)
-    return os.ExpandEnv(s)
+	// First handle ${NAME} and ${NAME:-def} ourselves to preserve defaults,
+	// then allow $NAME and ${NAME} leftovers via os.ExpandEnv.
+	s = expandWithLookup(s, os.LookupEnv)
+	return os.ExpandEnv(s)
 }
 
 // expandWithLookup is a generic expander that resolves ${NAME:-def}

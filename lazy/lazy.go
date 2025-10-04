@@ -1,8 +1,10 @@
-package envvar
+package lazy
 
 import (
 	"sync"
 	"time"
+
+	"github.com/aatuh/envvar/v2/getters"
 )
 
 // onceVal is a struct that contains a once and a value.
@@ -23,7 +25,7 @@ type onceVal[T any] struct {
 func LazyString(key string) func() string {
 	var o onceVal[string]
 	return func() string {
-		o.once.Do(func() { o.val = MustGet(key) })
+		o.once.Do(func() { o.val = getters.MustGet(key) })
 		return o.val
 	}
 }
@@ -40,7 +42,7 @@ func LazyString(key string) func() string {
 func LazyBool(key string) func() bool {
 	var o onceVal[bool]
 	return func() bool {
-		o.once.Do(func() { o.val = MustGetBool(key) })
+		o.once.Do(func() { o.val = getters.MustGetBool(key) })
 		return o.val
 	}
 }
@@ -57,7 +59,7 @@ func LazyBool(key string) func() bool {
 func LazyInt(key string) func() int {
 	var o onceVal[int]
 	return func() int {
-		o.once.Do(func() { o.val = MustGetInt(key) })
+		o.once.Do(func() { o.val = getters.MustGetInt(key) })
 		return o.val
 	}
 }
@@ -74,7 +76,7 @@ func LazyInt(key string) func() int {
 func LazyFloat64(key string) func() float64 {
 	var o onceVal[float64]
 	return func() float64 {
-		o.once.Do(func() { o.val = MustGetFloat64(key) })
+		o.once.Do(func() { o.val = getters.MustGetFloat64(key) })
 		return o.val
 	}
 }
@@ -91,7 +93,7 @@ func LazyFloat64(key string) func() float64 {
 func LazyDuration(key string) func() time.Duration {
 	var o onceVal[time.Duration]
 	return func() time.Duration {
-		o.once.Do(func() { o.val = MustGetDuration(key) })
+		o.once.Do(func() { o.val = getters.MustGetDuration(key) })
 		return o.val
 	}
 }
@@ -108,7 +110,7 @@ func LazyDuration(key string) func() time.Duration {
 func LazyStringSlice(key string) func() []string {
 	var o onceVal[[]string]
 	return func() []string {
-		o.once.Do(func() { o.val = MustGetStringSlice(key) })
+		o.once.Do(func() { o.val = getters.MustGetStringSlice(key) })
 		return o.val
 	}
 }
@@ -126,7 +128,7 @@ func LazyStringSlice(key string) func() []string {
 func LazyTyped[T any](key string, conv func(string) (T, error)) func() T {
 	var o onceVal[T]
 	return func() T {
-		o.once.Do(func() { o.val = MustGetTyped(key, conv) })
+		o.once.Do(func() { o.val = getters.MustGetTyped(key, conv) })
 		return o.val
 	}
 }

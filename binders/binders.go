@@ -1,4 +1,4 @@
-package envvar
+package binders
 
 import (
 	"encoding/json"
@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aatuh/envvar/v2/internal"
+	"github.com/aatuh/envvar/v2/expand"
+	"github.com/aatuh/envvar/v2/validate"
 )
 
 // Bind populates a struct from the process environment using `env` and
@@ -103,7 +104,7 @@ func bindWithOptions(dst any, prefix string) error {
 		if !exists {
 			continue
 		}
-		raw = internal.Expand(raw)
+		raw = expand.Expand(raw)
 
 		fv := rv.Field(i)
 		if !fv.CanSet() {
@@ -115,7 +116,7 @@ func bindWithOptions(dst any, prefix string) error {
 		}
 		// Validation
 		if vtag, ok := f.Tag.Lookup("validate"); ok && vtag != "" {
-			if err := internal.ValidateField(fv, vtag, sep); err != nil {
+			if err := validate.ValidateField(fv, vtag, sep); err != nil {
 				errs = append(errs, fmt.Errorf("envvar: %s: %w",
 					name, err))
 			}
@@ -272,4 +273,49 @@ func setFieldJSON(v reflect.Value, raw string) error {
 	}
 	v.Set(reflect.ValueOf(tmp).Elem())
 	return nil
+}
+
+// ParseBoolValue parses a boolean value.
+//
+// Parameters:
+//   - v: The value to parse.
+//
+// Returns:
+//   - bool: The boolean value.
+//   - error: The error if the parsing fails.
+func ParseBoolValue(v string) (bool, error) {
+	s := strings.TrimSpace(strings.ToLower(v))
+	switch s {
+	case "1", "t", "true", "y", "yes", "on":
+		return true, nil
+	case "0", "f", "false", "n", "no", "off":
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid boolean: %s", v)
+	}
+}
+
+// SplitAndTrim splits a string into a slice of strings and trims each string.
+//
+// Parameters:
+//   - s: The string to split.
+//   - sep: The separator to split on.
+//
+// Returns:
+//   - []string: The slice of strings.
+func SplitAndTrim(s, sep string) []string {
+	raw := strings.Split(s, sep)
+	out := make([]string, 0, len(raw))
+	for _, p := range raw {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// missingErr returns a missing error.
+func missingErr(key string) error {
+	return &KeyError{Key: key, Kind: ErrMissing}
 }

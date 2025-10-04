@@ -1,4 +1,4 @@
-package internal
+package validate
 
 import (
 	"fmt"
@@ -149,8 +149,8 @@ func checkMax(v reflect.Value, s string) error {
 // checkOneOf ensures the value is in the allowed set. Allowed values
 // are always pipe-separated (e.g. "a|b|c"), regardless of envsep.
 func checkOneOf(v reflect.Value, vals string, sep string) error {
-    // Allowed values are pipe-separated regardless of envsep.
-    allowed := strings.Split(vals, "|")
+	// Allowed values are pipe-separated regardless of envsep.
+	allowed := strings.Split(vals, "|")
 
 	switch v.Kind() {
 	case reflect.String:

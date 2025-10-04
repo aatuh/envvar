@@ -1,4 +1,4 @@
-package envvar
+package loaders
 
 import (
 	"bufio"
@@ -7,9 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/aatuh/envvar/v2/internal"
 	"github.com/aatuh/envvar/v2/types"
 )
 
@@ -37,26 +35,6 @@ var (
 	// defaultPaths are tried when caller passes nil.
 	defaultPaths = []string{".env", "/env/.env"}
 )
-
-// GetRaw returns a value with expansion applied. Expansion supports
-// "${NAME}" and "${NAME:-default}" using current process env.
-//
-// Parameters:
-//   - key: The key to get.
-//
-// Returns:
-//   - string: The value.
-//   - bool: The boolean indicating presence.
-func GetRaw(key string) (string, bool) {
-	start := time.Now()
-	v, ok := os.LookupEnv(key)
-	var err error
-	if ok {
-		v = internal.Expand(v)
-	}
-	types.CallOnGet(key, ok, err, time.Since(start))
-	return v, ok
-}
 
 // LoadOnce loads the environment variables from the given paths.
 //
@@ -126,46 +104,6 @@ func ReadFile(path string) (map[string]string, error) {
 		return nil, err
 	}
 	return m, nil
-}
-
-// SplitAndTrim splits a string into a slice of strings and trims each string.
-//
-// Parameters:
-//   - s: The string to split.
-//   - sep: The separator to split on.
-//
-// Returns:
-//   - []string: The slice of strings.
-func SplitAndTrim(s, sep string) []string {
-	raw := strings.Split(s, sep)
-	out := make([]string, 0, len(raw))
-	for _, p := range raw {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-// ParseBoolValue parses a boolean value.
-//
-// Parameters:
-//   - v: The value to parse.
-//
-// Returns:
-//   - bool: The boolean value.
-//   - error: The error if the parsing fails.
-func ParseBoolValue(v string) (bool, error) {
-	s := strings.TrimSpace(strings.ToLower(v))
-	switch s {
-	case "1", "t", "true", "y", "yes", "on":
-		return true, nil
-	case "0", "f", "false", "n", "no", "off":
-		return false, nil
-	default:
-		return false, errors.New("invalid boolean: " + v)
-	}
 }
 
 // strconvI converts an integer to a string.

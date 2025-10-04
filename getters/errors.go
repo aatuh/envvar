@@ -1,4 +1,4 @@
-package envvar
+package getters
 
 import "strings"
 
@@ -35,23 +35,6 @@ func (e *KeyError) Error() string {
 	if e.Msg != "" {
 		b.WriteString(": ")
 		b.WriteString(e.Msg)
-	}
-	return b.String()
-}
-
-// MultiError aggregates multiple errors into one.
-type MultiError []error
-
-// Error returns the error message.
-//
-// Returns:
-//   - string: The error message.
-func (m MultiError) Error() string {
-	var b strings.Builder
-	b.WriteString("envvar: multiple errors:")
-	for _, e := range m {
-		b.WriteString("\n  - ")
-		b.WriteString(e.Error())
 	}
 	return b.String()
 }

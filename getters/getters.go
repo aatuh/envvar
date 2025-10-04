@@ -1,42 +1,16 @@
-package envvar
+package getters
 
 import (
+	"errors"
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/aatuh/envvar/v2/binders"
-	"github.com/aatuh/envvar/v2/getters"
-	"github.com/aatuh/envvar/v2/lazy"
-	"github.com/aatuh/envvar/v2/loaders"
 	"github.com/aatuh/envvar/v2/types"
 )
-
-// Hook allows optional observability without adding dependencies.
-// Provide your own implementation and register with SetHook.
-type Hook = types.Hook
-
-// SetHook installs a global hook. It is safe to call at program init.
-//
-// Parameters:
-//   - h: The hook to install.
-func SetHook(h Hook) {
-	types.SetHook(h)
-}
-
-// MustLoadEnvVars loads variables from the first existing path in paths.
-// If paths is nil, it tries ".env" then "/env/.env". It panics on
-// read/parse error. Re-entrant calls are no-ops.
-//
-// Parameters:
-//   - paths: The paths to load.
-func MustLoadEnvVars(paths []string) {
-	if err := loaders.LoadOnce(paths); err != nil {
-		panic(err)
-	}
-}
 
 // Get returns the raw value and a boolean indicating presence.
 //
@@ -47,7 +21,7 @@ func MustLoadEnvVars(paths []string) {
 //   - string: The raw value.
 //   - bool: The boolean indicating presence.
 func Get(key string) (string, bool) {
-	return getters.Get(key)
+	return GetRaw(key)
 }
 
 // GetOr returns the value or a default if not present.
@@ -59,7 +33,10 @@ func Get(key string) (string, bool) {
 // Returns:
 //   - string: The value or the default.
 func GetOr(key, def string) string {
-	return getters.GetOr(key, def)
+	if v, ok := Get(key); ok {
+		return v
+	}
+	return def
 }
 
 // MustGet returns the value or panics if not present.
@@ -70,7 +47,11 @@ func GetOr(key, def string) string {
 // Returns:
 //   - string: The value.
 func MustGet(key string) string {
-	return getters.MustGet(key)
+	v, ok := Get(key)
+	if !ok {
+		panic("envvar: missing required " + key)
+	}
+	return v
 }
 
 // GetOrErr returns the value or an error if not present.
@@ -82,7 +63,11 @@ func MustGet(key string) string {
 //   - string: The value.
 //   - error: The error if the value is not present.
 func GetOrErr(key string) (string, error) {
-	return getters.GetOrErr(key)
+	v, ok := Get(key)
+	if !ok {
+		return "", missingErr(key)
+	}
+	return v, nil
 }
 
 // GetBool returns the value as a boolean.
@@ -94,7 +79,7 @@ func GetOrErr(key string) (string, error) {
 //   - bool: The value.
 //   - error: The error if the value is not present.
 func GetBool(key string) (bool, error) {
-	return getters.GetBool(key)
+	return parseBool(key)
 }
 
 // GetBoolOr returns the value as a boolean or a default if not present.
@@ -106,7 +91,15 @@ func GetBool(key string) (bool, error) {
 // Returns:
 //   - bool: The value or the default.
 func GetBoolOr(key string, def bool) bool {
-	return getters.GetBoolOr(key, def)
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	b, err := ParseBoolValue(v)
+	if err != nil {
+		return def
+	}
+	return b
 }
 
 // MustGetBool returns the value as a boolean or panics if not present.
@@ -116,8 +109,13 @@ func GetBoolOr(key string, def bool) bool {
 //
 // Returns:
 //   - bool: The value.
+//   - error: The error if the value is not present.
 func MustGetBool(key string) bool {
-	return getters.MustGetBool(key)
+	b, err := GetBool(key)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 // GetInt returns the value as an integer.
@@ -129,7 +127,15 @@ func MustGetBool(key string) bool {
 //   - int: The value.
 //   - error: The error if the value is not present.
 func GetInt(key string) (int, error) {
-	return getters.GetInt(key)
+	v, ok := Get(key)
+	if !ok {
+		return 0, missingErr(key)
+	}
+	i64, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return 0, typeErr(key, "int", v)
+	}
+	return int(i64), nil
 }
 
 // GetIntOr returns the value as an integer or a default if not present.
@@ -140,8 +146,17 @@ func GetInt(key string) (int, error) {
 //
 // Returns:
 //   - int: The value or the default.
+//   - error: The error if the value is not present.
 func GetIntOr(key string, def int) int {
-	return getters.GetIntOr(key, def)
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	i64, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return def
+	}
+	return int(i64)
 }
 
 // MustGetInt returns the value as an integer or panics if not present.
@@ -151,8 +166,13 @@ func GetIntOr(key string, def int) int {
 //
 // Returns:
 //   - int: The value.
+//   - error: The error if the value is not present.
 func MustGetInt(key string) int {
-	return getters.MustGetInt(key)
+	v, err := GetInt(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 // GetFloat64 returns the value as a float64.
@@ -163,8 +183,17 @@ func MustGetInt(key string) int {
 // Returns:
 //   - float64: The value.
 //   - error: The error if the value is not present.
+
 func GetFloat64(key string) (float64, error) {
-	return getters.GetFloat64(key)
+	v, ok := Get(key)
+	if !ok {
+		return 0, missingErr(key)
+	}
+	f, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+	if err != nil {
+		return 0, typeErr(key, "float64", v)
+	}
+	return f, nil
 }
 
 // GetFloat64Or returns the value as a float64 or a default if not present.
@@ -175,8 +204,17 @@ func GetFloat64(key string) (float64, error) {
 //
 // Returns:
 //   - float64: The value or the default.
+//   - error: The error if the value is not present.
 func GetFloat64Or(key string, def float64) float64 {
-	return getters.GetFloat64Or(key, def)
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	f, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+	if err != nil {
+		return def
+	}
+	return f
 }
 
 // MustGetFloat64 returns the value as a float64 or panics if not present.
@@ -186,8 +224,13 @@ func GetFloat64Or(key string, def float64) float64 {
 //
 // Returns:
 //   - float64: The value.
+//   - error: The error if the value is not present.
 func MustGetFloat64(key string) float64 {
-	return getters.MustGetFloat64(key)
+	v, err := GetFloat64(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 // GetDuration returns the value as a duration.
@@ -199,7 +242,15 @@ func MustGetFloat64(key string) float64 {
 //   - time.Duration: The value.
 //   - error: The error if the value is not present.
 func GetDuration(key string) (time.Duration, error) {
-	return getters.GetDuration(key)
+	v, ok := Get(key)
+	if !ok {
+		return 0, missingErr(key)
+	}
+	d, err := time.ParseDuration(strings.TrimSpace(v))
+	if err != nil {
+		return 0, typeErr(key, "duration", v)
+	}
+	return d, nil
 }
 
 // GetDurationOr returns the value as a duration or a default if not present.
@@ -210,8 +261,17 @@ func GetDuration(key string) (time.Duration, error) {
 //
 // Returns:
 //   - time.Duration: The value or the default.
+//   - error: The error if the value is not present.
 func GetDurationOr(key string, def time.Duration) time.Duration {
-	return getters.GetDurationOr(key, def)
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	d, err := time.ParseDuration(strings.TrimSpace(v))
+	if err != nil {
+		return def
+	}
+	return d
 }
 
 // MustGetDuration returns the value as a duration or panics if not present.
@@ -221,8 +281,13 @@ func GetDurationOr(key string, def time.Duration) time.Duration {
 //
 // Returns:
 //   - time.Duration: The value.
+//   - error: The error if the value is not present.
 func MustGetDuration(key string) time.Duration {
-	return getters.MustGetDuration(key)
+	v, err := GetDuration(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 // GetURL returns the value as a URL.
@@ -234,7 +299,15 @@ func MustGetDuration(key string) time.Duration {
 //   - *url.URL: The value.
 //   - error: The error if the value is not present.
 func GetURL(key string) (*url.URL, error) {
-	return getters.GetURL(key)
+	v, ok := Get(key)
+	if !ok {
+		return nil, missingErr(key)
+	}
+	u, err := url.Parse(strings.TrimSpace(v))
+	if err != nil || u.Scheme == "" {
+		return nil, typeErr(key, "url", v)
+	}
+	return u, nil
 }
 
 // MustGetURL returns the value as a URL or panics if not present.
@@ -245,7 +318,11 @@ func GetURL(key string) (*url.URL, error) {
 // Returns:
 //   - *url.URL: The value.
 func MustGetURL(key string) *url.URL {
-	return getters.MustGetURL(key)
+	u, err := GetURL(key)
+	if err != nil {
+		panic(err)
+	}
+	return u
 }
 
 // GetIP returns the value as an IP.
@@ -257,7 +334,15 @@ func MustGetURL(key string) *url.URL {
 //   - net.IP: The value.
 //   - error: The error if the value is not present.
 func GetIP(key string) (net.IP, error) {
-	return getters.GetIP(key)
+	v, ok := Get(key)
+	if !ok {
+		return nil, missingErr(key)
+	}
+	ip := net.ParseIP(strings.TrimSpace(v))
+	if ip == nil {
+		return nil, typeErr(key, "ip", v)
+	}
+	return ip, nil
 }
 
 // MustGetIP returns the value as an IP or panics if not present.
@@ -267,8 +352,13 @@ func GetIP(key string) (net.IP, error) {
 //
 // Returns:
 //   - net.IP: The value.
+//   - error: The error if the value is not present.
 func MustGetIP(key string) net.IP {
-	return getters.MustGetIP(key)
+	ip, err := GetIP(key)
+	if err != nil {
+		panic(err)
+	}
+	return ip
 }
 
 // GetStringSlice returns the value as a slice of strings.
@@ -280,7 +370,7 @@ func MustGetIP(key string) net.IP {
 //   - []string: The value.
 //   - error: The error if the value is not present.
 func GetStringSlice(key string) ([]string, error) {
-	return getters.GetStringSlice(key)
+	return GetStringSliceSep(key, ",")
 }
 
 // MustGetStringSlice returns the value as a slice of strings or panics if not present.
@@ -290,8 +380,13 @@ func GetStringSlice(key string) ([]string, error) {
 //
 // Returns:
 //   - []string: The value.
+//   - error: The error if the value is not present.
 func MustGetStringSlice(key string) []string {
-	return getters.MustGetStringSlice(key)
+	v, err := GetStringSlice(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 // GetStringSliceSep returns the value as a slice of strings with a custom separator.
@@ -304,10 +399,19 @@ func MustGetStringSlice(key string) []string {
 //   - []string: The value.
 //   - error: The error if the value is not present.
 func GetStringSliceSep(key, sep string) ([]string, error) {
-	return getters.GetStringSliceSep(key, sep)
+	v, ok := Get(key)
+	if !ok {
+		return nil, missingErr(key)
+	}
+	s := strings.TrimSpace(v)
+	if s == "" {
+		return []string{}, nil
+	}
+	parts := SplitAndTrim(s, sep)
+	return parts, nil
 }
 
-// GetTyped returns the value as a typed value using a converter.
+// Generic typed getter using a converter.
 //
 // Parameters:
 //   - key: The key to get.
@@ -317,7 +421,12 @@ func GetStringSliceSep(key, sep string) ([]string, error) {
 //   - T: The value.
 //   - error: The error if the value is not present.
 func GetTyped[T any](key string, conv func(string) (T, error)) (T, error) {
-	return getters.GetTyped(key, conv)
+	var zero T
+	v, ok := Get(key)
+	if !ok {
+		return zero, missingErr(key)
+	}
+	return conv(strings.TrimSpace(v))
 }
 
 // MustGetTyped returns the value as a typed value or panics if not present.
@@ -328,168 +437,135 @@ func GetTyped[T any](key string, conv func(string) (T, error)) (T, error) {
 //
 // Returns:
 //   - T: The value.
+//   - error: The error if the value is not present.
 func MustGetTyped[T any](key string, conv func(string) (T, error)) T {
-	return getters.MustGetTyped(key, conv)
+	v, err := GetTyped(key, conv)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
-// Bind populates a struct from the process environment using `env` and
-// `validate` tags. See BindWithPrefix for details.
-//
-// Parameters:
-//   - dst: The destination.
-//
-// Returns:
-//   - error: The error if the binding fails.
-func Bind(dst any) error {
-	return binders.Bind(dst)
-}
-
-// BindWithPrefix is like Bind but first tries variables with the given
-// prefix. For example with prefix "MYAPP_", field `env:"PORT"` resolves
-// "MYAPP_PORT" if present, else falls back to "PORT".
-//
-// Parameters:
-//   - dst: The destination.
-//   - prefix: The prefix.
-//
-// Returns:
-//   - error: The error if the binding fails.
-func BindWithPrefix(dst any, prefix string) error {
-	return binders.BindWithPrefix(dst, prefix)
-}
-
-// MustBind panics on binding errors.
-//
-// Parameters:
-//   - dst: The destination.
-func MustBind(dst any) {
-	binders.MustBind(dst)
-}
-
-// MustBindWithPrefix panics on binding errors.
-//
-// Parameters:
-//   - dst: The destination.
-//   - prefix: The prefix.
-func MustBindWithPrefix(dst any, prefix string) {
-	binders.MustBindWithPrefix(dst, prefix)
-}
-
-// LazyString returns a function that returns the value of the environment
-// variable with the given key.
+// GetRaw returns a value with expansion applied. Expansion supports
+// "${NAME}" and "${NAME:-default}" using current process env.
 //
 // Parameters:
 //   - key: The key to get.
 //
 // Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key.
-func LazyString(key string) func() string {
-	return lazy.LazyString(key)
+//   - string: The value.
+//   - bool: The boolean indicating presence.
+func GetRaw(key string) (string, bool) {
+	start := time.Now()
+	v, ok := os.LookupEnv(key)
+	var err error
+	if ok {
+		v = expand(v)
+	}
+	types.CallOnGet(key, ok, err, time.Since(start))
+	return v, ok
 }
 
-// LazyBool returns a function that returns the value of the environment
-// variable with the given key as a boolean.
+// ParseBoolValue parses a boolean value.
 //
 // Parameters:
-//   - key: The key to get.
+//   - v: The value to parse.
 //
 // Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key as a boolean.
-func LazyBool(key string) func() bool {
-	return lazy.LazyBool(key)
+//   - bool: The boolean value.
+//   - error: The error if the parsing fails.
+func ParseBoolValue(v string) (bool, error) {
+	s := strings.TrimSpace(strings.ToLower(v))
+	switch s {
+	case "1", "t", "true", "y", "yes", "on":
+		return true, nil
+	case "0", "f", "false", "n", "no", "off":
+		return false, nil
+	default:
+		return false, errors.New("invalid boolean: " + v)
+	}
 }
 
-// LazyInt returns a function that returns the value of the environment
-// variable with the given key as an integer.
+// SplitAndTrim splits a string into a slice of strings and trims each string.
 //
 // Parameters:
-//   - key: The key to get.
+//   - s: The string to split.
+//   - sep: The separator to split on.
 //
 // Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key as an integer.
-func LazyInt(key string) func() int {
-	return lazy.LazyInt(key)
-}
-
-// LazyFloat64 returns a function that returns the value of the environment
-// variable with the given key as a float64.
-//
-// Parameters:
-//   - key: The key to get.
-//
-// Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key as a float64.
-func LazyFloat64(key string) func() float64 {
-	return lazy.LazyFloat64(key)
-}
-
-// LazyDuration returns a function that returns the value of the environment
-// variable with the given key as a duration.
-//
-// Parameters:
-//   - key: The key to get.
-//
-// Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key as a duration.
-func LazyDuration(key string) func() time.Duration {
-	return lazy.LazyDuration(key)
-}
-
-// LazyStringSlice returns a function that returns the value of the environment
-// variable with the given key as a slice of strings.
-//
-// Parameters:
-//   - key: The key to get.
-//
-// Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key as a slice of strings.
-func LazyStringSlice(key string) func() []string {
-	return lazy.LazyStringSlice(key)
-}
-
-// LazyTyped returns a function that returns the value of the environment
-// variable with the given key as a typed value.
-//
-// Parameters:
-//   - key: The key to get.
-//   - conv: The converter function.
-//
-// Returns:
-//   - func(): The function that returns the value of the environment variable
-//     with the given key as a typed value.
-func LazyTyped[T any](key string, conv func(string) (T, error)) func() T {
-	return lazy.LazyTyped(key, conv)
-}
-
-// DumpRedacted returns environment as a map with secret-like values
-// redacted. Redaction is heuristic: keys containing "SECRET", "TOKEN",
-// "KEY", or "PASSWORD" are masked.
-//
-// Returns:
-//   - map[string]string: The environment as a map with secret-like values redacted.
-func DumpRedacted() map[string]string {
-	env := os.Environ()
-	out := make(map[string]string, len(env))
-	for _, kv := range env {
-		k, v, ok := strings.Cut(kv, "=")
-		if !ok {
-			continue
-		}
-		upper := strings.ToUpper(k)
-		if strings.Contains(upper, "SECRET") ||
-			strings.Contains(upper, "TOKEN") ||
-			strings.Contains(upper, "PASSWORD") ||
-			strings.HasSuffix(upper, "_KEY") {
-			out[k] = "***"
-		} else {
-			out[k] = v
+//   - []string: The slice of strings.
+func SplitAndTrim(s, sep string) []string {
+	raw := strings.Split(s, sep)
+	out := make([]string, 0, len(raw))
+	for _, p := range raw {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
 		}
 	}
 	return out
+}
+
+// missingErr returns a missing error.
+func missingErr(key string) error {
+	return &KeyError{Key: key, Kind: ErrMissing}
+}
+
+// typeErr returns a type error.
+func typeErr(key, want, got string) error {
+	return &KeyError{
+		Key:  key,
+		Kind: ErrType,
+		Msg:  "want " + want + ", got " + got,
+	}
+}
+
+// parseBool parses a boolean value.
+func parseBool(key string) (bool, error) {
+	v, ok := Get(key)
+	if !ok {
+		return false, missingErr(key)
+	}
+	return ParseBoolValue(v)
+}
+
+// expand applies ${NAME} and ${NAME:-def} using process env first.
+func expand(s string) string {
+	// First handle ${NAME} and ${NAME:-def} ourselves to preserve defaults,
+	// then allow $NAME and ${NAME} leftovers via os.ExpandEnv.
+	s = expandWithLookup(s, os.LookupEnv)
+	return os.ExpandEnv(s)
+}
+
+// expandWithLookup is a generic expander that resolves ${NAME:-def}
+// with a provided lookup function.
+func expandWithLookup(s string, look func(string) (string, bool)) string {
+	// Handle ${NAME:-default} segments. Keep this non-nesting for
+	// clarity and performance.
+	for {
+		i := strings.Index(s, "${")
+		if i < 0 {
+			break
+		}
+		j := strings.Index(s[i:], "}")
+		if j < 0 {
+			break
+		}
+		j += i
+		inner := s[i+2 : j]
+		name, def, hasDef := strings.Cut(inner, ":-")
+		if name == "" {
+			s = s[:i] + s[j+1:]
+			continue
+		}
+		if v, ok := look(name); ok {
+			s = s[:i] + v + s[j+1:]
+		} else if hasDef {
+			s = s[:i] + def + s[j+1:]
+		} else {
+			// Missing and no default -> drop to empty.
+			s = s[:i] + "" + s[j+1:]
+		}
+	}
+	return s
 }
