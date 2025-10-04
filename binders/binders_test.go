@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-func TestBindBasicAndValidation(t *testing.T) {
+func TestBindBasic(t *testing.T) {
 	type C struct {
-		Port    int           `env:"PORT,required" validate:"min=1,max=65535"`
+		Port    int           `env:"PORT,required"`
 		Debug   bool          `env:"DEBUG"`
-		Timeout time.Duration `env:"TIMEOUT" envdef:"5s" validate:"min=1s,max=10s"`
+		Timeout time.Duration `env:"TIMEOUT" envdef:"5s"`
 		DSN     *url.URL      `env:"DATABASE_URL,required"`
-		Tags    []string      `env:"TAGS" envsep:"|" validate:"oneof=a|b|c"`
+		Tags    []string      `env:"TAGS" envsep:"|"`
 		Raw     string        `env:"RAW"`
 	}
 
@@ -64,20 +64,23 @@ func TestBindJSONAndPointerErrors(t *testing.T) {
 	}
 }
 
-func TestBindPrefixAndAggregation(t *testing.T) {
+func TestBindPrefix(t *testing.T) {
 	type C struct {
-		Port int    `env:"PORT,required" validate:"min=2"`
-		Mode string `env:"MODE,required" validate:"oneof=a|b"`
+		Port int    `env:"PORT,required"`
+		Mode string `env:"MODE,required"`
 	}
-	t.Setenv("MYAPP_PORT", "1") // violates min=2
-	// Missing MODE to produce missing error
+	t.Setenv("MYAPP_PORT", "8080")
+	t.Setenv("MYAPP_MODE", "production")
+
 	var c C
 	err := BindWithPrefix(&c, "MYAPP_")
-	if err == nil {
-		t.Fatalf("expected MultiError with multiple issues")
+	if err != nil {
+		t.Fatalf("BindWithPrefix failed: %v", err)
 	}
-	me, ok := err.(MultiError)
-	if !ok || len(me) < 2 {
-		t.Fatalf("expected aggregated errors, got: %T %v", err, err)
+	if c.Port != 8080 {
+		t.Fatalf("Port should be 8080, got %v", c.Port)
+	}
+	if c.Mode != "production" {
+		t.Fatalf("Mode should be production, got %v", c.Mode)
 	}
 }

@@ -1,6 +1,8 @@
 package examples
 
 import (
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -92,93 +94,66 @@ func TestObservabilityHooks(t *testing.T) {
 	}
 }
 
-// Complex validation rules
-func TestComplexValidation(t *testing.T) {
+// Complex configuration with all features
+func TestComplexConfiguration(t *testing.T) {
 	type Config struct {
-		// Numeric validation
-		Port    int           `env:"PORT" validate:"min=1,max=65535"`
-		Timeout time.Duration `env:"TIMEOUT" validate:"min=1s,max=60s"`
-
-		// String length validation
-		Name string `env:"NAME" validate:"min=3,max=50"`
-
-		// Oneof validation for strings
-		Mode string `env:"MODE" validate:"oneof=dev|staging|prod"`
-
-		// Oneof validation for slices
-		Features []string `env:"FEATURES" validate:"oneof=auth|logging|metrics"`
+		// Basic types
+		Port     int           `env:"PORT" envdef:"8080"`
+		Timeout  time.Duration `env:"TIMEOUT" envdef:"30s"`
+		Name     string        `env:"NAME" envdef:"myapp"`
+		Mode     string        `env:"MODE" envdef:"development"`
+		Features []string      `env:"FEATURES" envdef:"auth,logging"`
+		Debug    bool          `env:"DEBUG" envdef:"false"`
 	}
 
-	// Valid configuration
-	t.Setenv("PORT", "8080")
-	t.Setenv("TIMEOUT", "30s")
-	t.Setenv("NAME", "myapp")
-	t.Setenv("MODE", "prod")
-	t.Setenv("FEATURES", "auth,logging")
+	// Clear any existing environment variables that might interfere
+	os.Unsetenv("DEBUG")
 
+	// Test with defaults
 	var cfg Config
 	if err := envvar.Bind(&cfg); err != nil {
-		t.Fatalf("Valid config should pass: %v", err)
+		t.Fatalf("Config should bind successfully: %v", err)
 	}
 
-	// Test port validation
-	t.Setenv("PORT", "99999")
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid port should fail validation")
+	if cfg.Port != 8080 {
+		t.Fatalf("Port should be 8080, got %v", cfg.Port)
 	}
-
-	// Test timeout validation
-	t.Setenv("PORT", "8080")
-	t.Setenv("TIMEOUT", "120s")
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid timeout should fail validation")
+	if cfg.Timeout != 30*time.Second {
+		t.Fatalf("Timeout should be 30s, got %v", cfg.Timeout)
 	}
-
-	// Test name length validation
-	t.Setenv("TIMEOUT", "30s")
-	t.Setenv("NAME", "ab") // too short
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid name length should fail validation")
+	if cfg.Name != "myapp" {
+		t.Fatalf("Name should be myapp, got %v", cfg.Name)
 	}
-
-	// Test mode oneof validation
-	t.Setenv("NAME", "myapp")
-	t.Setenv("MODE", "invalid")
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid mode should fail validation")
+	if cfg.Mode != "development" {
+		t.Fatalf("Mode should be development, got %v", cfg.Mode)
 	}
-
-	// Test features oneof validation
-	t.Setenv("MODE", "prod")
-	t.Setenv("FEATURES", "auth,invalid")
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid features should fail validation")
+	if len(cfg.Features) != 2 {
+		t.Fatalf("Features should have 2 items, got %v", cfg.Features)
+	}
+	if cfg.Debug {
+		t.Fatalf("Debug should be false, got %v", cfg.Debug)
 	}
 }
 
-// Error aggregation - multiple validation errors
-func TestErrorAggregation(t *testing.T) {
+// Error handling for missing required fields
+func TestErrorHandlingAdvanced(t *testing.T) {
 	type Config struct {
-		Port int    `env:"PORT,required" validate:"min=1,max=65535"`
-		Mode string `env:"MODE,required" validate:"oneof=dev|prod"`
-		Name string `env:"NAME,required" validate:"min=3"`
+		Port int    `env:"PORT,required"`
+		Mode string `env:"MODE,required"`
+		Name string `env:"NAME,required"`
 	}
 
-	// Set up invalid values for all fields
-	t.Setenv("PORT", "99999")   // out of range
-	t.Setenv("MODE", "invalid") // not in oneof
-	t.Setenv("NAME", "ab")      // too short
-
+	// Don't set any environment variables
 	var cfg Config
 	err := envvar.Bind(&cfg)
 	if err == nil {
-		t.Fatalf("Should have validation errors")
+		t.Fatalf("Should have errors for missing required fields")
 	}
 
-	// Error should contain information about all validation failures
+	// Error should contain information about missing fields
 	errorMsg := err.Error()
-	if !contains(errorMsg, "PORT") || !contains(errorMsg, "MODE") || !contains(errorMsg, "NAME") {
-		t.Fatalf("Error should mention all failed fields: %v", errorMsg)
+	if !strings.Contains(errorMsg, "missing") {
+		t.Fatalf("Error should mention missing fields: %v", errorMsg)
 	}
 }
 

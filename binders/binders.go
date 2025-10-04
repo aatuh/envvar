@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/aatuh/envvar/v2/expand"
-	"github.com/aatuh/envvar/v2/validate"
 )
 
-// Bind populates a struct from the process environment using `env` and
-// `validate` tags. See BindWithPrefix for details.
+// Bind populates a struct from the process environment using `env` tags.
+// See BindWithPrefix for details.
 //
 // Parameters:
 //   - dst: The destination.
@@ -113,13 +112,6 @@ func bindWithOptions(dst any, prefix string) error {
 		if err := setField(fv, raw, sep, jsonMode); err != nil {
 			errs = append(errs, fmt.Errorf("envvar: %s: %w", name, err))
 			continue
-		}
-		// Validation
-		if vtag, ok := f.Tag.Lookup("validate"); ok && vtag != "" {
-			if err := validate.ValidateField(fv, vtag, sep); err != nil {
-				errs = append(errs, fmt.Errorf("envvar: %s: %w",
-					name, err))
-			}
 		}
 	}
 	if len(errs) > 0 {

@@ -47,37 +47,32 @@ func TestBasicStructBinding(t *testing.T) {
 	}
 }
 
-// Struct binding with validation rules
-func TestStructBindingWithValidation(t *testing.T) {
+// Struct binding with defaults
+func TestStructBindingWithDefaults(t *testing.T) {
 	type Config struct {
-		Port    int           `env:"PORT,required" validate:"min=1,max=65535"`
-		Timeout time.Duration `env:"TIMEOUT" validate:"min=1s,max=10s"`
-		Mode    string        `env:"MODE,required" validate:"oneof=dev|staging|prod"`
-		Tags    []string      `env:"TAGS" validate:"oneof=web|api|db"`
+		Port    int           `env:"PORT" envdef:"8080"`
+		Timeout time.Duration `env:"TIMEOUT" envdef:"5s"`
+		Mode    string        `env:"MODE" envdef:"development"`
+		Tags    []string      `env:"TAGS" envdef:"web,api"`
 	}
 
-	// Valid configuration
-	t.Setenv("PORT", "8080")
-	t.Setenv("TIMEOUT", "5s")
-	t.Setenv("MODE", "prod")
-	t.Setenv("TAGS", "web,api")
-
+	// Test with defaults
 	var cfg Config
 	if err := envvar.Bind(&cfg); err != nil {
-		t.Fatalf("Valid config should bind successfully: %v", err)
+		t.Fatalf("Config with defaults should bind successfully: %v", err)
 	}
 
-	// Invalid configuration - port out of range
-	t.Setenv("PORT", "99999")
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid port should fail validation")
+	if cfg.Port != 8080 {
+		t.Fatalf("Port default should be 8080, got %v", cfg.Port)
 	}
-
-	// Invalid configuration - invalid mode
-	t.Setenv("PORT", "8080")
-	t.Setenv("MODE", "invalid")
-	if err := envvar.Bind(&cfg); err == nil {
-		t.Fatalf("Invalid mode should fail validation")
+	if cfg.Timeout != 5*time.Second {
+		t.Fatalf("Timeout default should be 5s, got %v", cfg.Timeout)
+	}
+	if cfg.Mode != "development" {
+		t.Fatalf("Mode default should be development, got %v", cfg.Mode)
+	}
+	if len(cfg.Tags) != 2 {
+		t.Fatalf("Tags default should have 2 items, got %v", cfg.Tags)
 	}
 }
 
