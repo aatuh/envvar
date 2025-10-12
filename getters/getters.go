@@ -175,6 +175,61 @@ func MustGetInt(key string) int {
 	return v
 }
 
+// GetInt64 returns the value as an int64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - int64: The value.
+//   - error: The error if the value is not present.
+func GetInt64(key string) (int64, error) {
+	v, ok := Get(key)
+	if !ok {
+		return 0, missingErr(key)
+	}
+	i64, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return 0, typeErr(key, "int64", v)
+	}
+	return i64, nil
+}
+
+// GetInt64Or returns the value as an int64 or a default if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//   - def: The default value.
+//
+// Returns:
+//   - int64: The value or the default.
+func GetInt64Or(key string, def int64) int64 {
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	i64, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return def
+	}
+	return i64
+}
+
+// MustGetInt64 returns the value as an int64 or panics if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - int64: The value.
+func MustGetInt64(key string) int64 {
+	v, err := GetInt64(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 // GetFloat64 returns the value as a float64.
 //
 // Parameters:

@@ -155,6 +155,41 @@ func MustGetInt(key string) int {
 	return getters.MustGetInt(key)
 }
 
+// GetInt64 returns the value as an int64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - int64: The value.
+//   - error: The error if the value is not present.
+func GetInt64(key string) (int64, error) {
+	return getters.GetInt64(key)
+}
+
+// GetInt64Or returns the value as an int64 or a default if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//   - def: The default value.
+//
+// Returns:
+//   - int64: The value or the default.
+func GetInt64Or(key string, def int64) int64 {
+	return getters.GetInt64Or(key, def)
+}
+
+// MustGetInt64 returns the value as an int64 or panics if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - int64: The value.
+func MustGetInt64(key string) int64 {
+	return getters.MustGetInt64(key)
+}
+
 // GetFloat64 returns the value as a float64.
 //
 // Parameters:
@@ -412,6 +447,19 @@ func LazyBool(key string) func() bool {
 //     with the given key as an integer.
 func LazyInt(key string) func() int {
 	return lazy.LazyInt(key)
+}
+
+// LazyInt64 returns a function that returns the value of the environment
+// variable with the given key as an int64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - func(): The function that returns the value of the environment variable
+//     with the given key as an int64.
+func LazyInt64(key string) func() int64 {
+	return lazy.LazyInt64(key)
 }
 
 // LazyFloat64 returns a function that returns the value of the environment

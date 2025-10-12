@@ -39,6 +39,7 @@ func TestParseBoolAndGetBoolOr(t *testing.T) {
 
 func TestNumericDurationURLStringSlice(t *testing.T) {
 	t.Setenv("PORT", "8080")
+	t.Setenv("PORT64", "9223372036854775807") // max int64
 	t.Setenv("RATE", "3.14")
 	t.Setenv("TTL", "250ms")
 	t.Setenv("DSN", "https://example.com/x")
@@ -49,6 +50,14 @@ func TestNumericDurationURLStringSlice(t *testing.T) {
 	}
 	if v := GetIntOr("BADINT", 42); v != 42 {
 		t.Fatalf("GetIntOr fallback failed: %v", v)
+	}
+
+	// Test int64 getters
+	if v, err := GetInt64("PORT64"); err != nil || v != 9223372036854775807 {
+		t.Fatalf("GetInt64: %v %v", v, err)
+	}
+	if v := GetInt64Or("BADINT64", 42); v != 42 {
+		t.Fatalf("GetInt64Or fallback failed: %v", v)
 	}
 
 	if v, err := GetFloat64("RATE"); err != nil || v < 3.139 || v > 3.141 {
@@ -87,6 +96,16 @@ func TestGetTypedAndMustPanics(t *testing.T) {
 		}
 	}()
 	_ = MustGetInt("NO_SUCH_INT")
+}
+
+func TestInt64MustPanics(t *testing.T) {
+	// MustGetInt64 panics on missing
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatalf("MustGetInt64 should panic on missing key")
+		}
+	}()
+	_ = MustGetInt64("NO_SUCH_INT64")
 }
 
 func TestErrorsKinds(t *testing.T) {

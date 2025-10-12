@@ -64,6 +64,23 @@ func LazyInt(key string) func() int {
 	}
 }
 
+// LazyInt64 returns a function that returns the value of the environment
+// variable with the given key as an int64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - func(): The function that returns the value of the environment variable
+//     with the given key as an int64.
+func LazyInt64(key string) func() int64 {
+	var o onceVal[int64]
+	return func() int64 {
+		o.once.Do(func() { o.val = getters.MustGetInt64(key) })
+		return o.val
+	}
+}
+
 // LazyFloat64 returns a function that returns the value of the environment
 // variable with the given key as a float64.
 //
