@@ -230,6 +230,116 @@ func MustGetInt64(key string) int64 {
 	return v
 }
 
+// GetUint returns the value as a uint.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint: The value.
+//   - error: The error if the value is not present.
+func GetUint(key string) (uint, error) {
+	v, ok := Get(key)
+	if !ok {
+		return 0, missingErr(key)
+	}
+	u64, err := strconv.ParseUint(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return 0, typeErr(key, "uint", v)
+	}
+	return uint(u64), nil
+}
+
+// GetUintOr returns the value as a uint or a default if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//   - def: The default value.
+//
+// Returns:
+//   - uint: The value or the default.
+func GetUintOr(key string, def uint) uint {
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	u64, err := strconv.ParseUint(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return def
+	}
+	return uint(u64)
+}
+
+// MustGetUint returns the value as a uint or panics if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint: The value.
+func MustGetUint(key string) uint {
+	v, err := GetUint(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// GetUint64 returns the value as a uint64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint64: The value.
+//   - error: The error if the value is not present.
+func GetUint64(key string) (uint64, error) {
+	v, ok := Get(key)
+	if !ok {
+		return 0, missingErr(key)
+	}
+	u64, err := strconv.ParseUint(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return 0, typeErr(key, "uint64", v)
+	}
+	return u64, nil
+}
+
+// GetUint64Or returns the value as a uint64 or a default if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//   - def: The default value.
+//
+// Returns:
+//   - uint64: The value or the default.
+func GetUint64Or(key string, def uint64) uint64 {
+	v, ok := Get(key)
+	if !ok {
+		return def
+	}
+	u64, err := strconv.ParseUint(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return def
+	}
+	return u64
+}
+
+// MustGetUint64 returns the value as a uint64 or panics if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint64: The value.
+func MustGetUint64(key string) uint64 {
+	v, err := GetUint64(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 // GetFloat64 returns the value as a float64.
 //
 // Parameters:

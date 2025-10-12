@@ -190,6 +190,76 @@ func MustGetInt64(key string) int64 {
 	return getters.MustGetInt64(key)
 }
 
+// GetUint returns the value as a uint.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint: The value.
+//   - error: The error if the value is not present.
+func GetUint(key string) (uint, error) {
+	return getters.GetUint(key)
+}
+
+// GetUintOr returns the value as a uint or a default if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//   - def: The default value.
+//
+// Returns:
+//   - uint: The value or the default.
+func GetUintOr(key string, def uint) uint {
+	return getters.GetUintOr(key, def)
+}
+
+// MustGetUint returns the value as a uint or panics if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint: The value.
+func MustGetUint(key string) uint {
+	return getters.MustGetUint(key)
+}
+
+// GetUint64 returns the value as a uint64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint64: The value.
+//   - error: The error if the value is not present.
+func GetUint64(key string) (uint64, error) {
+	return getters.GetUint64(key)
+}
+
+// GetUint64Or returns the value as a uint64 or a default if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//   - def: The default value.
+//
+// Returns:
+//   - uint64: The value or the default.
+func GetUint64Or(key string, def uint64) uint64 {
+	return getters.GetUint64Or(key, def)
+}
+
+// MustGetUint64 returns the value as a uint64 or panics if not present.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - uint64: The value.
+func MustGetUint64(key string) uint64 {
+	return getters.MustGetUint64(key)
+}
+
 // GetFloat64 returns the value as a float64.
 //
 // Parameters:
@@ -460,6 +530,32 @@ func LazyInt(key string) func() int {
 //     with the given key as an int64.
 func LazyInt64(key string) func() int64 {
 	return lazy.LazyInt64(key)
+}
+
+// LazyUint returns a function that returns the value of the environment
+// variable with the given key as a uint.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - func(): The function that returns the value of the environment variable
+//     with the given key as a uint.
+func LazyUint(key string) func() uint {
+	return lazy.LazyUint(key)
+}
+
+// LazyUint64 returns a function that returns the value of the environment
+// variable with the given key as a uint64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - func(): The function that returns the value of the environment variable
+//     with the given key as a uint64.
+func LazyUint64(key string) func() uint64 {
+	return lazy.LazyUint64(key)
 }
 
 // LazyFloat64 returns a function that returns the value of the environment

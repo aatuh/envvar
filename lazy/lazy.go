@@ -81,6 +81,40 @@ func LazyInt64(key string) func() int64 {
 	}
 }
 
+// LazyUint returns a function that returns the value of the environment
+// variable with the given key as a uint.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - func(): The function that returns the value of the environment variable
+//     with the given key as a uint.
+func LazyUint(key string) func() uint {
+	var o onceVal[uint]
+	return func() uint {
+		o.once.Do(func() { o.val = getters.MustGetUint(key) })
+		return o.val
+	}
+}
+
+// LazyUint64 returns a function that returns the value of the environment
+// variable with the given key as a uint64.
+//
+// Parameters:
+//   - key: The key to get.
+//
+// Returns:
+//   - func(): The function that returns the value of the environment variable
+//     with the given key as a uint64.
+func LazyUint64(key string) func() uint64 {
+	var o onceVal[uint64]
+	return func() uint64 {
+		o.once.Do(func() { o.val = getters.MustGetUint64(key) })
+		return o.val
+	}
+}
+
 // LazyFloat64 returns a function that returns the value of the environment
 // variable with the given key as a float64.
 //
